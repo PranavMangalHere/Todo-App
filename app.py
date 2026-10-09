@@ -1,76 +1,66 @@
 import streamlit as st
-import csv
+
+from todo.storage import add_task, load_tasks, save_tasks, set_task_completed
 
 # Define the path to the CSV file
 CSV_FILE = "tasks.csv"
 
-# Define the main function
+
 def main():
     # Set the title of the web app
     st.title("To-Do List")
     st.markdown(
-         f"""
+        """
          <style>
-         .stApp {{
+         .stApp {
              background-image: url("https://images.pexels.com/photos/2387793/pexels-photo-2387793.jpeg?cs=srgb&dl=pexels-adrien-olichon-2387793.jpg&fm=jpg");
              background-attachment: fixed;
              background-size: cover
-         }}
+         }
          </style>
          """,
-         unsafe_allow_html=True
-     )
+        unsafe_allow_html=True,
+    )
 
     # Load the tasks from the CSV file
-    task_list = load_tasks()
+    tasks = load_tasks(CSV_FILE)
 
-    # Add a form to input new tasks
     task_input = st.text_input("Add a new task:")
     if st.button("Add"):
-        if task_input != "":
-            # Add the new task to the list and save it to the CSV file
-            task_list.append(task_input)
-            save_tasks(task_list)
-            task_input = ""
-            display(task_list)
+        try:
+            add_task(CSV_FILE, task_input)
+            st.rerun()
+        except ValueError:
+            st.warning("Please enter a task.")
+        except OSError:
+            st.error("Unable to save tasks. Please try again.")
 
-    
+    display(tasks)
 
-    # Add a button to clear the task list
     if st.button("Clear all tasks"):
-        # Clear the task list and save the changes to the CSV file
-        task_list.clear()
-        save_tasks(task_list)
-        display(task_list)        
+        try:
+            save_tasks(CSV_FILE, [])
+            st.rerun()
+        except OSError:
+            st.error("Unable to clear tasks. Please try again.")
 
-def load_tasks():
-    """
-    Load the tasks from the CSV file.
-    """
-    try:
-        with open(CSV_FILE, "r") as f:
-            reader = csv.reader(f)
-            task_list = [row[0] for row in reader]
-    except FileNotFoundError:
-        task_list = []
-    return task_list
-def display(task_list):
-    # Display the current tasks
-    if len(task_list) == 0:
+
+def display(tasks):
+    if len(tasks) == 0:
         st.write("No tasks added yet.")
-    else:
-        st.write("Current tasks:")
-        for i, task in enumerate(task_list):
-            st.write(f"{i+1}. {task}")
-def save_tasks(task_list):
-    """
-    Save the tasks to the CSV file.
-    """
-    with open(CSV_FILE, "w", newline="") as f:
-        f.truncate(0)
-        writer = csv.writer(f)
-        writer.writerows([[task] for task in task_list])
+        return
 
-# Run the app
+    st.write("Current tasks:")
+
+    for task in tasks:
+        checkbox_value = st.checkbox(task.title, value=task.completed, key=f"task_{task.id}")
+        if checkbox_value != task.completed:
+            try:
+                set_task_completed(CSV_FILE, task.id, checkbox_value)
+                st.rerun()
+            except OSError:
+                st.error("Unable to update task. Please try again.")
+
+
 if __name__ == "__main__":
     main()
