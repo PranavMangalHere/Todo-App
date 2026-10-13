@@ -1,0 +1,14 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Test caches
+.pytest_cache/
+
+# IDE / local tooling
+.vscode/
+.codemie/
+
+# Data
+tasks.csv
